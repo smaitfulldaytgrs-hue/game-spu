@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4, user-scalable=yes">
 <title>SPU Detective — Kasus Konfigurasi Elektron</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔎</text></svg>">
 <style>
@@ -153,6 +153,18 @@ button, input{ font-family:inherit; }
 }
 .hint-small{ text-align:center; font-size:12px; color:var(--text-dim); margin:14px 0 0; }
 
+.grade-notice{
+  background:var(--paper-2);
+  border-left:3px solid var(--red-dark);
+  border-radius:6px;
+  padding:10px 12px;
+  font-size:12.5px;
+  line-height:1.5;
+  color:#3a3527;
+  margin:0 0 18px;
+}
+.grade-notice strong{ color:var(--red-dark); }
+
 /* ===== Progress ===== */
 .progress-wrap{ margin-bottom:16px; }
 .progress-track{ height:6px; background:var(--line-dark); border-radius:6px; overflow:hidden; }
@@ -194,6 +206,7 @@ button, input{ font-family:inherit; }
 .practice-head .eyebrow{ color:var(--amber); margin:0; }
 .score-chip{ font-family:var(--font-mono); font-size:12px; color:#a9b0c0; margin:0; }
 .instruction{ font-size:13.5px; color:#cdd3df; margin:0 0 14px; line-height:1.5; }
+.instruction strong{ color:var(--amber); }
 
 .timer-row{ display:flex; justify-content:flex-end; margin-bottom:8px; }
 .timer-display{
@@ -221,22 +234,25 @@ button, input{ font-family:inherit; }
   margin:0;
   width:92px;
   box-shadow:0 14px 26px -14px rgba(0,0,0,.6);
-  cursor:grab;
-  touch-action:none;
+  cursor:pointer;
   user-select:none;
-  transition:transform .12s ease, box-shadow .12s ease, opacity .35s ease;
+  transition:transform .12s ease, box-shadow .12s ease, opacity .35s ease, border-color .12s ease;
   border:2px dashed var(--paper-line);
 }
-.evidence-card.dragging{
-  cursor:grabbing;
-  box-shadow:0 26px 40px -16px rgba(0,0,0,.7);
-  z-index:200;
-  transition:none;
+.evidence-card:active{ transform:scale(.95); }
+.evidence-card.selected{
+  border:2px solid var(--amber);
+  box-shadow:0 0 0 3px rgba(227,162,60,.35), 0 14px 26px -14px rgba(0,0,0,.7);
+  transform:translateY(-4px) scale(1.04);
 }
 .evidence-card.settled{ opacity:.35; pointer-events:none; }
+.evidence-card.settled::after{
+  content:"✓";
+  position:absolute; top:4px; right:6px;
+  color:var(--teal-dark); font-weight:700; font-size:13px;
+}
 .evidence-symbol{ font-size:20px; font-weight:700; line-height:1; }
 .evidence-name{ font-size:9px; color:var(--text-dim); margin-top:3px; }
-.evidence-z{ font-family:var(--font-mono); font-size:8px; color:var(--text-dim); margin-top:1px; }
 .evidence-config{ font-family:var(--font-mono); font-size:10px; margin-top:5px; font-weight:600; }
 .drag-hint{ font-size:8px; color:var(--amber-dark); margin-top:5px; letter-spacing:.03em; }
 
@@ -270,9 +286,38 @@ button, input{ font-family:inherit; }
 .pt-active{
   background:#20283a; border-style:dashed; border-color:var(--amber); color:var(--amber);
   cursor:pointer; transition:background .15s ease, border-color .15s ease, transform .1s ease;
+  animation:pulseActive 2.4s ease-in-out infinite;
 }
-.pt-active.wrong-flash{ border-color:var(--red); background:#3a1c17; color:#f3c9c0; }
+.pt-active:active{ transform:scale(.9); }
+@keyframes pulseActive{
+  0%,100%{ box-shadow:0 0 0 0 rgba(227,162,60,.35); }
+  50%{ box-shadow:0 0 0 5px rgba(227,162,60,0); }
+}
+.pt-active.wrong-flash{
+  border-color:var(--red); background:#3a1c17; color:#f3c9c0;
+  animation:shakeCell .4s ease;
+}
+@keyframes shakeCell{
+  20%{ transform:translateX(-3px); } 40%{ transform:translateX(3px); }
+  60%{ transform:translateX(-2px); } 80%{ transform:translateX(2px); } 100%{ transform:translateX(0); }
+}
 .pt-active.target-hover{ background:#2a2412; border-color:var(--amber); transform:scale(1.1); }
+
+.selection-bar{
+  position:sticky; top:52px; z-index:40;
+  display:none; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--amber-dark); color:#fff8ec;
+  padding:9px 14px; border-radius:0 0 12px 12px;
+  font-family:var(--font-mono); font-size:13px; letter-spacing:.02em;
+  box-shadow:0 8px 16px -8px rgba(0,0,0,.6);
+  margin:0 -16px 14px;
+}
+.selection-bar.show{ display:flex; }
+.selection-bar .sb-cancel{
+  background:rgba(255,255,255,.2); border:none; color:inherit;
+  padding:5px 11px; border-radius:7px; font-size:12px; cursor:pointer; flex-shrink:0;
+}
+.selection-bar .sb-cancel:active{ transform:scale(.94); }
 .pt-solved{ border-style:solid; color:#fff8ec; font-size:14px; }
 .pt-c-s{ background:var(--amber-dark); border-color:var(--amber); }
 .pt-c-p{ background:var(--teal-dark); border-color:var(--teal); }
@@ -280,6 +325,13 @@ button, input{ font-family:inherit; }
 .pt-c-f{ background:var(--purple-dark); border-color:var(--purple); }
 
 .pt-strip{ margin-top:10px; }
+
+.pt-group-header{ margin-bottom:4px; }
+.pt-group-cell{
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:9.5px; color:#8891a3;
+  letter-spacing:.02em; padding-bottom:2px;
+}
 
 .pt-compact .pt-grid{ grid-template-columns:12px repeat(18, minmax(16px,1fr)); min-width:330px; gap:2px; }
 .pt-compact .pt-cell{ font-size:7px; border-radius:2px; }
@@ -335,6 +387,8 @@ button, input{ font-family:inherit; }
   .screen{ animation:none; }
   .confetti-piece{ animation:none; display:none; }
   .timer-display.timer-warn{ animation:none; }
+  .pt-active{ animation:none; }
+  .pt-active.wrong-flash{ animation:none; }
 }
 
 </style>
@@ -358,7 +412,9 @@ button, input{ font-family:inherit; }
       <div class="stamp">RAHASIA</div>
       <p class="eyebrow">Divisi Kimia — Unit SPU</p>
       <h1 class="case-title">SPU DETECTIVE</h1>
-      <p class="case-sub">Setiap unsur meninggalkan jejak: konfigurasi elektronnya. Tugasmu — seret tiap unsur ke selnya yang tepat di Tabel Periodik yang masih kosong, blok demi blok.</p>
+      <p class="case-sub">Setiap unsur meninggalkan jejak: konfigurasi elektronnya. Tugasmu — ketuk tiap unsur, lalu ketuk selnya yang tepat di Tabel Periodik yang masih kosong, blok demi blok.</p>
+
+      <p class="grade-notice">📋 <strong>Ini dinilai, bukan sekadar main-main.</strong> Skormu tercatat otomatis dan jadi nilai akhirmu. Salah pilih unsur atau salah taruh di sel akan mengurangi skor — jadi pikirkan baik-baik dulu sebelum menempatkan, jangan asal tebak.</p>
 
       <label class="field">
         <span>Nama Detektif</span>
@@ -411,14 +467,19 @@ button, input{ font-family:inherit; }
       <span class="timer-display" id="timerDisplay">⏱ 20:00</span>
     </div>
 
-    <p class="instruction" id="practiceInstruction">Tahan kartu mana pun, lalu seret ke sel tabel periodik yang menurutmu tepat. Urutan bebas.</p>
+    <p class="instruction" id="practiceInstruction">Ketuk salah satu kartu unsur, lalu ketuk sel tabel periodik yang menurutmu tepat. Urutan bebas. <strong>Ingat: ini dinilai — salah taruh mengurangi skor.</strong></p>
+
+    <div class="selection-bar" id="selectionBar">
+      <span id="selectionSymbol"></span>
+      <button type="button" class="sb-cancel" id="btnCancelSelect">Batal pilih</button>
+    </div>
 
     <div class="card-tray" id="cardTray"></div>
 
     <div class="pt-scroll">
       <div class="pt-board" id="ptBoard"></div>
     </div>
-    <p class="pt-hint">Geser tabel ke kiri/kanan bila perlu, lalu tahan &amp; seret kartu ke sel kosong yang menurutmu tepat.</p>
+    <p class="pt-hint">Geser tabel ke kiri/kanan untuk melihat sel lain. Sel oranye berdenyut = sel kosong yang bisa diisi sekarang.</p>
 
     <div class="feedback-toast" id="feedbackToast"></div>
   </section>
@@ -467,7 +528,7 @@ button, input{ font-family:inherit; }
    KONFIGURASI — ganti SCRIPT_URL setelah deploy Apps Script
    ========================================================= */
 const CONFIG = {
-  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxp8b1OEA0Bypb135bRbA1n8esJ8WdwHbYFkbXNrBjtARqK2Yv-22JolXoNL7l5yTZg/exec"
+  SCRIPT_URL: "PASTE_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DI_SINI"
 };
 
 /* =========================================================
@@ -496,6 +557,14 @@ const REAL_ELEMENTS = {
 };
 const LANTH_ROW = ["Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu"]; // kolom 4–17
 const ACTIN_ROW = ["Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr"];  // kolom 4–17
+
+// Label golongan (sistem CAS, yang umum dipakai di buku pelajaran Indonesia).
+// Indeks 1..18 sesuai nomor kolom tabel.
+const GROUP_LABELS = {
+  1:"IA", 2:"IIA", 3:"IIIB", 4:"IVB", 5:"VB", 6:"VIB", 7:"VIIB",
+  8:"VIIIB", 9:"VIIIB", 10:"VIIIB", 11:"IB", 12:"IIB",
+  13:"IIIA", 14:"IVA", 15:"VA", 16:"VIA", 17:"VIIA", 18:"VIIIA"
+};
 
 /* =========================================================
    DATA SETIAP UNSUR (nama Indonesia, Z, konfigurasi elektron)
@@ -954,6 +1023,24 @@ function renderBoard(container, opts) {
   container.innerHTML = "";
   container.classList.toggle("pt-compact", !!opts.compact);
 
+  // ---- baris keterangan golongan (IA, IIA, ...) — hanya papan utama ----
+  if (!opts.compact) {
+    const header = document.createElement("div");
+    header.className = "pt-grid pt-group-header";
+    const corner = document.createElement("div");
+    corner.className = "pt-group-cell";
+    corner.style.gridColumn = "1";
+    header.appendChild(corner);
+    for (let col = 1; col <= 18; col++) {
+      const lbl = document.createElement("div");
+      lbl.className = "pt-group-cell";
+      lbl.style.gridColumn = String(col + 1);
+      lbl.textContent = GROUP_LABELS[col];
+      header.appendChild(lbl);
+    }
+    container.appendChild(header);
+  }
+
   // ---- tabel utama: periode 1–7, golongan 1–18 ----
   const grid = document.createElement("div");
   grid.className = "pt-grid";
@@ -1115,6 +1202,18 @@ function startPractice() {
 
 function currentBlock() { return BLOCKS[state.blockIndex]; }
 
+// Fisher-Yates — dipakai supaya kartu tidak tersusun berurutan
+// (sesuai Z), biar murid tidak menghafal pola posisi, harus baca
+// konfigurasi tiap kartu satu per satu.
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // Unsur blok ini yang belum ditempatkan dengan benar (dipakai untuk isi tray
 // dan mengecek apakah blok sudah selesai).
 function remainingElements() {
@@ -1133,30 +1232,30 @@ function updateProgressLabel() {
 // murid bebas pilih kartu mana dulu, dan sel tabel periodik untuk blok ini
 // semua kosong ("?") dari awal, siap diisi dalam urutan bebas.
 function renderPracticeTray() {
+  deselectCard();
   const block = currentBlock();
 
   document.getElementById("practiceEyebrow").textContent =
     `${block.title.toUpperCase()} — SUSUN KE TABEL PERIODIK`;
   document.getElementById("scoreChip").textContent = state.blockScore;
-  document.getElementById("practiceInstruction").textContent =
-    "Tahan kartu mana pun, lalu seret ke sel tabel periodik yang menurutmu tepat. Urutan bebas.";
+  document.getElementById("practiceInstruction").innerHTML =
+    "Ketuk salah satu kartu unsur, lalu ketuk sel tabel periodik yang menurutmu tepat. Urutan bebas. <strong>Ingat: ini dinilai — salah taruh mengurangi skor.</strong>";
   document.getElementById("topbarCase").textContent =
     `${state.nama || "Detektif"} · ${block.title}`;
   updateProgressLabel();
 
   const tray = document.getElementById("cardTray");
   tray.innerHTML = "";
-  remainingElements().forEach(el => {
+  shuffleArray(remainingElements()).forEach(el => {
     const card = document.createElement("div");
     card.className = "evidence-card";
     card.innerHTML = `
       <div class="evidence-symbol">${el.symbol}</div>
       <div class="evidence-name">${el.name}</div>
-      <div class="evidence-z">Z = ${el.z}</div>
       <div class="evidence-config">${el.config}</div>
     `;
     tray.appendChild(card);
-    attachDragHandlers(card, el);
+    card.addEventListener("click", () => selectCard(card, el));
   });
 
   renderBoard(document.getElementById("ptBoard"), { interactive: true });
@@ -1171,99 +1270,86 @@ function renderPracticeTray() {
   }
 }
 
-function attachDragHandlers(card, el) {
-  let offX = 0, offY = 0, moved = false, wrongCount = 0;
+/* =========================================================
+   PILIH KARTU (tap), LALU KETUK SEL — ganti mekanisme drag lama.
+   Drag di HP bentrok dengan scroll & kartu menutupi sel target;
+   tap-pilih-lalu-tap-sel menghindari kedua masalah itu sekaligus.
+   ========================================================= */
+let selectedCard = null;
+let selectedElement = null;
+const wrongCounts = {};
 
-  function onDown(e) {
-    if (card.classList.contains("settled")) return;
-    Audio_.unlock();
-    Audio_.dragStart();
-    const p = pointFromEvent(e);
-    const rect = card.getBoundingClientRect();
-    offX = p.x - rect.left;
-    offY = p.y - rect.top;
-    card.style.position = "fixed";
-    card.style.left = rect.left + "px";
-    card.style.top = rect.top + "px";
-    card.style.width = rect.width + "px";
-    card.style.margin = "0";
-    card.classList.add("dragging");
-    moved = false;
-    card.setPointerCapture && e.pointerId != null && card.setPointerCapture(e.pointerId);
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
-  function onMove(e) {
-    moved = true;
-    const p = pointFromEvent(e);
-    card.style.left = (p.x - offX) + "px";
-    card.style.top = (p.y - offY) + "px";
-    const target = elementUnderPoint(p.x, p.y);
-    document.querySelectorAll(".pt-active").forEach(b => b.classList.remove("target-hover"));
-    if (target) target.classList.add("target-hover");
-  }
-
-  function onUp(e) {
-    window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerup", onUp);
-    card.classList.remove("dragging");
-    const p = pointFromEvent(e);
-    const target = elementUnderPoint(p.x, p.y);
-    document.querySelectorAll(".pt-active").forEach(b => b.classList.remove("target-hover"));
-
-    if (!moved || !target) {
-      resetCardPosition(card);
-      return;
-    }
-
-    const expectedKey = cellKeyFor(el);
-    const guessKey = target.dataset.cellkey;
-
-    if (guessKey === expectedKey) {
-      solvedMap[expectedKey] = true;
-      const points = Math.max(2, 10 - wrongCount * 3);
-      state.blockScore += points;
-      document.getElementById("scoreChip").textContent = state.blockScore;
-      Audio_.correct();
-      confettiBurst(14);
-      card.classList.add("settled");
-      resetCardPosition(card);
-      showToast(explainPlacement(el), false);
-      renderBoard(document.getElementById("ptBoard"), { interactive: true });
-      state.firstDragDone = true;
-      setTimeout(() => {
-        card.remove();
-        updateProgressLabel();
-        if (remainingElements().length === 0) finishBlock(false);
-      }, 550);
-    } else {
-      target.classList.add("wrong-flash");
-      Audio_.wrong();
-      wrongCount++;
-      showToast(`Belum tepat. ${el.symbol} bukan di sel itu. Cek lagi golongan &amp; periodenya.`, true);
-      resetCardPosition(card);
-      setTimeout(() => target.classList.remove("wrong-flash"), 500);
-    }
-  }
-
-  card.onpointerdown = onDown;
+function selectCard(card, el) {
+  if (card.classList.contains("settled")) return;
+  Audio_.unlock();
+  if (selectedCard === card) { deselectCard(); return; }
+  Audio_.dragStart();
+  if (selectedCard) selectedCard.classList.remove("selected");
+  selectedCard = card;
+  selectedElement = el;
+  card.classList.add("selected");
+  updateSelectionBar();
 }
 
-function pointFromEvent(e) { return { x: e.clientX, y: e.clientY }; }
-
-function elementUnderPoint(x, y) {
-  const els = document.elementsFromPoint(x, y);
-  return els.find(el => el.classList && el.classList.contains("pt-active")) || null;
+function deselectCard() {
+  if (selectedCard) selectedCard.classList.remove("selected");
+  selectedCard = null;
+  selectedElement = null;
+  updateSelectionBar();
 }
 
-function resetCardPosition(card) {
-  card.style.position = "";
-  card.style.left = "";
-  card.style.top = "";
-  card.style.width = "";
-  card.style.margin = "";
+function updateSelectionBar() {
+  const bar = document.getElementById("selectionBar");
+  if (!selectedElement) { bar.classList.remove("show"); return; }
+  document.getElementById("selectionSymbol").textContent =
+    `${selectedElement.symbol} dipilih — ketuk sel tabel periodik yang tepat`;
+  bar.classList.add("show");
 }
+
+document.getElementById("btnCancelSelect").addEventListener("click", deselectCard);
+
+// Satu listener terpasang di papan (bukan per-sel), karena isi papan
+// dibangun ulang tiap kali (renderBoard) tapi elemen wadahnya tetap sama.
+document.getElementById("ptBoard").addEventListener("click", (e) => {
+  const cell = e.target.closest(".pt-active");
+  if (!cell) return;
+
+  if (!selectedElement) {
+    showToast("Pilih dulu salah satu kartu unsur di atas, baru ketuk selnya.", true);
+    return;
+  }
+
+  const el = selectedElement;
+  const card = selectedCard;
+  const expectedKey = cellKeyFor(el);
+  const guessKey = cell.dataset.cellkey;
+
+  if (guessKey === expectedKey) {
+    solvedMap[expectedKey] = true;
+    const wrongCount = wrongCounts[el.symbol] || 0;
+    const points = Math.max(2, 10 - wrongCount * 3);
+    state.blockScore += points;
+    document.getElementById("scoreChip").textContent = state.blockScore;
+    Audio_.correct();
+    confettiBurst(14);
+    card.classList.add("settled");
+    deselectCard();
+    showToast(explainPlacement(el), false);
+    renderBoard(document.getElementById("ptBoard"), { interactive: true });
+    state.firstDragDone = true;
+    setTimeout(() => {
+      card.remove();
+      updateProgressLabel();
+      if (remainingElements().length === 0) finishBlock(false);
+    }, 550);
+  } else {
+    cell.classList.add("wrong-flash");
+    Audio_.wrong();
+    wrongCounts[el.symbol] = (wrongCounts[el.symbol] || 0) + 1;
+    showToast(`Belum tepat. ${el.symbol} bukan di sel itu. Cek lagi golongan &amp; periodenya.`, true);
+    setTimeout(() => cell.classList.remove("wrong-flash"), 500);
+  }
+});
 
 function explainPlacement(el) {
   const base = `<strong>${el.symbol} (${el.name})</strong> → golongan <strong>${el.group}</strong>, periode <strong>${el.period}</strong> — konfigurasi ${el.config}.`;
@@ -1278,6 +1364,7 @@ function finishBlock(timedOut) {
   if (state.blockFinished) return;
   state.blockFinished = true;
   clearInterval(state.timerId);
+  deselectCard();
 
   const block = currentBlock();
   const max = block.elements.length * 10;
