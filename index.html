@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>SPU Detective — Kasus Konfigurasi Elektron</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔎</text></svg>">
+<style>
+/* ===== Tokens ===== */
+:root{
+  --ink: #14181f;
+  --ink-2: #1c2330;
+  --line-dark: #313b4d;
+  --paper: #f4efe3;
+  --paper-2: #ece2c9;
+  --paper-line: #cabd97;
+  --text-dark: #201c14;
+  --text-dim: #6b6553;
+  --amber: #e3a23c;
+  --amber-dark: #b97c1f;
+  --teal: #3f8f82;
+  --teal-dark: #2c6a60;
+  --red: #c4573f;
+  --red-dark: #98392a;
+  --purple: #a68ce0;
+  --purple-dark: #6d54a8;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+  --font-sans: ui-sans-serif, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family:var(--font-sans);
+  background:
+    radial-gradient(ellipse at 50% -10%, #232c3c 0%, var(--ink) 55%, #0d1015 100%);
+  color:var(--paper);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+button, input{ font-family:inherit; }
+
+/* ===== Topbar ===== */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px;
+  background:rgba(20,24,31,.85);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line-dark);
+}
+.topbar-case{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.12em;
+  color:var(--amber);
+}
+.mute-btn{
+  width:34px; height:34px; border-radius:8px;
+  border:1px solid var(--line-dark);
+  background:var(--ink-2);
+  color:var(--paper);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.mute-btn:active{ transform:scale(.94); }
+
+/* ===== Stage / Screens ===== */
+.stage{ max-width:480px; margin:0 auto; padding:20px 16px 40px; position:relative; }
+.screen{ display:none; animation:fadeUp .35s ease; }
+.screen.active{ display:block; }
+@keyframes fadeUp{ from{ opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+/* ===== Folder / paper card ===== */
+.folder-card{
+  background:var(--paper);
+  color:var(--text-dark);
+  border-radius:4px 4px 14px 14px;
+  padding:26px 22px 24px;
+  position:relative;
+  box-shadow: 0 20px 40px -18px rgba(0,0,0,.6), 0 2px 0 var(--paper-line) inset;
+  border-top:10px solid var(--amber-dark);
+}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  color:var(--text-dim);
+  margin:0 0 6px;
+}
+.case-title{
+  font-size:34px;
+  margin:0 0 10px;
+  letter-spacing:.02em;
+  line-height:1.05;
+}
+.case-sub{
+  font-size:14.5px;
+  line-height:1.5;
+  color:var(--text-dim);
+  margin:0 0 20px;
+}
+.stamp{
+  position:absolute; top:14px; right:16px;
+  font-family:var(--font-mono);
+  font-size:11px; font-weight:700; letter-spacing:.08em;
+  color:var(--red-dark);
+  border:2px solid var(--red-dark);
+  padding:3px 8px; border-radius:3px;
+  transform:rotate(6deg);
+  opacity:.75;
+}
+.stamp-closed{ color:var(--teal-dark); border-color:var(--teal-dark); }
+.stamp-final{ color:var(--amber-dark); border-color:var(--amber-dark); }
+
+.field{ display:block; margin-bottom:14px; }
+.field span{ display:block; font-size:12.5px; color:var(--text-dim); margin-bottom:5px; }
+.field input{
+  width:100%; padding:11px 12px;
+  border:1.5px solid var(--paper-line);
+  border-radius:8px;
+  background:#fffdf7;
+  font-size:15px;
+  color:var(--text-dark);
+}
+.field input:focus{ outline:2px solid var(--amber); outline-offset:1px; }
+.field-error{ color:var(--red-dark); font-size:12.5px; min-height:16px; margin:-6px 0 8px; }
+
+.btn-primary{
+  width:100%;
+  background:var(--amber-dark);
+  color:#fff8ec;
+  border:none;
+  padding:13px 16px;
+  border-radius:9px;
+  font-size:15.5px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform .1s ease;
+}
+.btn-primary:active{ transform:scale(.98); }
+.btn-ghost{
+  width:100%;
+  background:transparent;
+  border:1.5px solid var(--paper-line);
+  color:var(--text-dark);
+  padding:12px 16px;
+  border-radius:9px;
+  font-size:14.5px;
+  cursor:pointer;
+}
+.hint-small{ text-align:center; font-size:12px; color:var(--text-dim); margin:14px 0 0; }
+
+/* ===== Progress ===== */
+.progress-wrap{ margin-bottom:16px; }
+.progress-track{ height:6px; background:var(--line-dark); border-radius:6px; overflow:hidden; }
+.progress-fill{ height:100%; background:var(--amber); width:0%; transition:width .4s ease; }
+.progress-label{ display:block; margin-top:6px; font-family:var(--font-mono); font-size:11px; color:#a9b0c0; }
+
+/* ===== Intro deck ===== */
+.intro-header{ margin-bottom:10px; }
+.block-title{ font-size:24px; margin:0; color:var(--paper); }
+.card-deck{
+  background:var(--paper);
+  color:var(--text-dark);
+  border-radius:14px;
+  padding:20px;
+  min-height:220px;
+  box-shadow:0 16px 30px -16px rgba(0,0,0,.55);
+}
+.card-deck h3{ margin:0 0 10px; font-size:17px; }
+.card-deck p{ font-size:14.5px; line-height:1.55; margin:0 0 10px; color:#3a3527; }
+.card-deck .example-box{
+  background:var(--paper-2);
+  border-left:3px solid var(--amber-dark);
+  padding:9px 11px;
+  border-radius:6px;
+  font-family:var(--font-mono);
+  font-size:13px;
+  margin-top:10px;
+}
+.deck-dots{ display:flex; justify-content:center; gap:6px; margin:12px 0; }
+.deck-dots span{ width:6px; height:6px; border-radius:50%; background:var(--line-dark); }
+.deck-dots span.on{ background:var(--amber); }
+.deck-nav{ display:flex; gap:10px; }
+.deck-nav .btn-ghost, .deck-nav .btn-primary{ color-scheme:light; }
+.deck-nav .btn-ghost{ flex:1; border-color:#42506a; color:var(--paper); }
+.deck-nav .btn-primary{ flex:2; }
+
+/* ===== Practice screen ===== */
+.practice-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.practice-head .eyebrow{ color:var(--amber); margin:0; }
+.score-chip{ font-family:var(--font-mono); font-size:12px; color:#a9b0c0; margin:0; }
+.instruction{ font-size:13.5px; color:#cdd3df; margin:0 0 14px; line-height:1.5; }
+
+.timer-row{ display:flex; justify-content:flex-end; margin-bottom:8px; }
+.timer-display{
+  font-family:var(--font-mono); font-size:13px; color:#a9b0c0;
+  background:var(--ink-2); border:1px solid var(--line-dark);
+  padding:4px 10px; border-radius:8px;
+}
+.timer-display.timer-warn{
+  color:#fff8ec; background:var(--red-dark); border-color:var(--red);
+  animation:pulseWarn 1s infinite;
+}
+@keyframes pulseWarn{ 50%{ opacity:.55; } }
+
+.card-tray{
+  display:flex; flex-wrap:wrap; justify-content:center;
+  gap:8px; margin:0 0 16px;
+}
+.evidence-card{
+  position:relative;
+  background:var(--paper);
+  color:var(--text-dark);
+  border-radius:10px;
+  padding:9px 6px 7px;
+  text-align:center;
+  margin:0;
+  width:92px;
+  box-shadow:0 14px 26px -14px rgba(0,0,0,.6);
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+  transition:transform .12s ease, box-shadow .12s ease, opacity .35s ease;
+  border:2px dashed var(--paper-line);
+}
+.evidence-card.dragging{
+  cursor:grabbing;
+  box-shadow:0 26px 40px -16px rgba(0,0,0,.7);
+  z-index:200;
+  transition:none;
+}
+.evidence-card.settled{ opacity:.35; pointer-events:none; }
+.evidence-symbol{ font-size:20px; font-weight:700; line-height:1; }
+.evidence-name{ font-size:9px; color:var(--text-dim); margin-top:3px; }
+.evidence-z{ font-family:var(--font-mono); font-size:8px; color:var(--text-dim); margin-top:1px; }
+.evidence-config{ font-family:var(--font-mono); font-size:10px; margin-top:5px; font-weight:600; }
+.drag-hint{ font-size:8px; color:var(--amber-dark); margin-top:5px; letter-spacing:.03em; }
+
+/* ===== Periodic table board ===== */
+.pt-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:6px; padding-bottom:4px; }
+.pt-hint{ font-size:11px; color:var(--text-dim); text-align:center; margin:0 0 12px; }
+.pt-caption{ font-size:11px; color:#8891a3; text-align:center; margin:0 0 6px; font-family:var(--font-mono); letter-spacing:.04em; }
+
+.pt-grid{
+  display:grid;
+  grid-template-columns:20px repeat(18, minmax(30px,1fr));
+  gap:3px;
+  min-width:600px;
+}
+.pt-label{
+  display:flex; align-items:center; justify-content:center;
+  aspect-ratio:1/1;
+  font-family:var(--font-mono); font-size:10px; color:#7c8496;
+}
+.pt-void{ aspect-ratio:1/1; }
+.pt-cell{
+  display:flex; align-items:center; justify-content:center;
+  aspect-ratio:1/1;
+  border-radius:4px;
+  font-family:var(--font-mono); font-size:13px; font-weight:600;
+  color:#c7cede; background:var(--ink-2); border:1px solid var(--line-dark);
+}
+.pt-inert{ color:#4a5165; background:#181c24; border-style:dashed; opacity:.55; font-weight:400; }
+.pt-locked{ background:#12151b; border-style:dashed; border-color:#252b38; opacity:.4; }
+.pt-pending{ background:#1c2330; border-style:dashed; opacity:.5; }
+.pt-active{
+  background:#20283a; border-style:dashed; border-color:var(--amber); color:var(--amber);
+  cursor:pointer; transition:background .15s ease, border-color .15s ease, transform .1s ease;
+}
+.pt-active.wrong-flash{ border-color:var(--red); background:#3a1c17; color:#f3c9c0; }
+.pt-active.target-hover{ background:#2a2412; border-color:var(--amber); transform:scale(1.1); }
+.pt-solved{ border-style:solid; color:#fff8ec; font-size:14px; }
+.pt-c-s{ background:var(--amber-dark); border-color:var(--amber); }
+.pt-c-p{ background:var(--teal-dark); border-color:var(--teal); }
+.pt-c-d{ background:var(--red-dark); border-color:var(--red); }
+.pt-c-f{ background:var(--purple-dark); border-color:var(--purple); }
+
+.pt-strip{ margin-top:10px; }
+
+.pt-compact .pt-grid{ grid-template-columns:12px repeat(18, minmax(16px,1fr)); min-width:330px; gap:2px; }
+.pt-compact .pt-cell{ font-size:7px; border-radius:2px; }
+.pt-compact .pt-label{ font-size:7px; }
+.pt-mini-wrap{ margin:12px 0 4px; }
+
+.feedback-toast{
+  position:fixed;
+  left:50%; bottom:22px; transform:translate(-50%, 20px);
+  max-width:420px; width:calc(100% - 32px);
+  background:var(--paper);
+  color:var(--text-dark);
+  border-radius:10px;
+  padding:12px 14px;
+  font-size:13.5px;
+  line-height:1.45;
+  box-shadow:0 16px 30px -12px rgba(0,0,0,.7);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s ease, transform .2s ease;
+  z-index:150;
+  border-left:5px solid var(--teal-dark);
+}
+.feedback-toast.show{ opacity:1; transform:translate(-50%, 0); }
+.feedback-toast.wrong{ border-left-color:var(--red-dark); }
+
+/* ===== Result screens ===== */
+.score-big{ font-size:48px; font-weight:700; text-align:center; margin:14px 0 6px; color:var(--amber-dark); }
+.score-big span{ font-size:20px; color:var(--text-dim); font-weight:500; }
+.result-note{ text-align:center; color:var(--text-dim); font-size:14px; margin-bottom:20px; }
+.final-breakdown{ margin:14px 0 18px; }
+.final-row{ display:flex; justify-content:space-between; font-size:14px; padding:7px 0; border-bottom:1px solid var(--paper-line); }
+.submit-status{ text-align:center; font-size:12.5px; color:var(--text-dim); margin-bottom:16px; font-family:var(--font-mono); }
+
+/* ===== Confetti ===== */
+#confettiLayer{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:300; }
+.confetti-piece{
+  position:absolute; top:-10px; width:8px; height:12px; opacity:.9;
+  animation-name:confetti-fall; animation-timing-function:ease-in; animation-fill-mode:forwards;
+}
+@keyframes confetti-fall{
+  to{ transform:translateY(110vh) rotate(540deg); opacity:0; }
+}
+
+/* ===== Small screens ===== */
+@media (max-width:360px){
+  .case-title{ font-size:28px; }
+  .evidence-symbol{ font-size:32px; }
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion:reduce){
+  .screen{ animation:none; }
+  .confetti-piece{ animation:none; display:none; }
+  .timer-display.timer-warn{ animation:none; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- persistent top bar -->
+<div class="topbar">
+  <div class="topbar-case" id="topbarCase">BERKAS KASUS</div>
+  <button class="mute-btn" id="muteBtn" aria-label="Mute suara">
+    <svg id="iconSoundOn" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M4 9v6h4l5 5V4L8 9H4z"/><path fill="currentColor" d="M16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+    <svg id="iconSoundOff" viewBox="0 0 24 24" width="20" height="20" style="display:none"><path fill="currentColor" d="M4 9v6h4l5 5V4L8 9H4z"/><path fill="currentColor" stroke="currentColor" stroke-width="1.5" d="M16 9l5 6M21 9l-5 6"/></svg>
+  </button>
+</div>
+
+<div class="stage" id="stage">
+
+  <!-- SCREEN 0: START -->
+  <section class="screen active" id="screen-start">
+    <div class="folder-card intro-folder">
+      <div class="stamp">RAHASIA</div>
+      <p class="eyebrow">Divisi Kimia — Unit SPU</p>
+      <h1 class="case-title">SPU DETECTIVE</h1>
+      <p class="case-sub">Setiap unsur meninggalkan jejak: konfigurasi elektronnya. Tugasmu — seret tiap unsur ke selnya yang tepat di Tabel Periodik yang masih kosong, blok demi blok.</p>
+
+      <label class="field">
+        <span>Nama Detektif</span>
+        <input type="text" id="inputNama" placeholder="Tulis namamu" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Kelas</span>
+        <input type="text" id="inputKelas" placeholder="Contoh: 11 MIPA 2" autocomplete="off">
+      </label>
+      <p class="field-error" id="startError"></p>
+
+      <button class="btn-primary" id="btnStart">Mulai Investigasi →</button>
+      <p class="hint-small">4 kasus berurutan: Blok s → p → d → f. Tiap blok diberi waktu 20 menit, dan tabel yang sudah terisi tidak akan hilang.</p>
+    </div>
+  </section>
+
+  <!-- SCREEN 1: BLOCK INTRO (swipeable cards) -->
+  <section class="screen" id="screen-intro">
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="blockProgressFill"></div></div>
+      <span class="progress-label" id="blockProgressLabel">Blok 1 / 4</span>
+    </div>
+    <div class="intro-header">
+      <p class="eyebrow" id="introEyebrow">KASUS 01</p>
+      <h2 class="block-title" id="introBlockTitle">Blok s</h2>
+    </div>
+    <div class="card-deck" id="introDeck"></div>
+    <div class="deck-dots" id="introDots"></div>
+    <div class="deck-nav">
+      <button class="btn-ghost" id="btnIntroBack">‹ Kembali</button>
+      <button class="btn-primary" id="btnIntroNext">Lanjut ›</button>
+    </div>
+    <p class="pt-caption">Tabel periodikmu sejauh ini</p>
+    <div class="pt-scroll pt-mini-wrap">
+      <div class="pt-board pt-compact" id="ptBoardIntro"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: PRACTICE (drag to periodic table) -->
+  <section class="screen" id="screen-practice">
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="practiceProgressFill"></div></div>
+      <span class="progress-label" id="practiceProgressLabel">Soal 1 / 7</span>
+    </div>
+    <div class="practice-head">
+      <p class="eyebrow" id="practiceEyebrow">BLOK s — GESER KE TABEL PERIODIK</p>
+      <p class="score-chip">Skor blok: <strong id="scoreChip">0</strong></p>
+    </div>
+    <div class="timer-row">
+      <span class="timer-display" id="timerDisplay">⏱ 20:00</span>
+    </div>
+
+    <p class="instruction" id="practiceInstruction">Tahan kartu mana pun, lalu seret ke sel tabel periodik yang menurutmu tepat. Urutan bebas.</p>
+
+    <div class="card-tray" id="cardTray"></div>
+
+    <div class="pt-scroll">
+      <div class="pt-board" id="ptBoard"></div>
+    </div>
+    <p class="pt-hint">Geser tabel ke kiri/kanan bila perlu, lalu tahan &amp; seret kartu ke sel kosong yang menurutmu tepat.</p>
+
+    <div class="feedback-toast" id="feedbackToast"></div>
+  </section>
+
+  <!-- SCREEN 3: BLOCK RESULT -->
+  <section class="screen" id="screen-blockresult">
+    <div class="folder-card">
+      <div class="stamp stamp-closed" id="stampClosed">KASUS DITUTUP</div>
+      <p class="eyebrow">Hasil Investigasi</p>
+      <h2 class="block-title" id="resultBlockTitle">Blok s Selesai</h2>
+      <div class="score-big" id="resultScoreBig">70<span>/70</span></div>
+      <p class="result-note" id="resultNote">Kerja bagus, Detektif!</p>
+      <p class="pt-caption">Tabel periodikmu sejauh ini</p>
+      <div class="pt-scroll pt-mini-wrap">
+        <div class="pt-board pt-compact" id="ptBoardResult"></div>
+      </div>
+      <button class="btn-primary" id="btnNextBlock">Lanjut ke Kasus Berikutnya →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 4: FINAL SUMMARY -->
+  <section class="screen" id="screen-final">
+    <div class="folder-card">
+      <div class="stamp stamp-final">KASUS TUNTAS</div>
+      <p class="eyebrow">Laporan Akhir</p>
+      <h2 class="block-title">Investigasi Selesai</h2>
+      <div class="score-big" id="finalScoreBig">0<span>/280</span></div>
+      <div class="final-breakdown" id="finalBreakdown"></div>
+      <p class="pt-caption">Tabel periodik lengkap hasil investigasimu</p>
+      <div class="pt-scroll pt-mini-wrap">
+        <div class="pt-board pt-compact" id="ptBoardFinal"></div>
+      </div>
+      <p class="submit-status" id="submitStatus">Mengirim laporan ke markas (guru)…</p>
+      <button class="btn-ghost" id="btnRestart">Ulangi dari Awal</button>
+    </div>
+  </section>
+
+</div>
+
+<div id="confettiLayer" aria-hidden="true"></div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   KONFIGURASI — ganti SCRIPT_URL setelah deploy Apps Script
+   ========================================================= */
+const CONFIG = {
+  SCRIPT_URL: "PASTE_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DI_SINI"
+};
+
+/* =========================================================
+   WAKTU PER BLOK (detik) — 20 menit
+   ========================================================= */
+const BLOCK_TIME_SECONDS = 20 * 60;
+
+/* =========================================================
+   REFERENSI TABEL PERIODIK ASLI (periode 1–7, golongan 1–18)
+   + deret lantanida/aktinida terpisah, kolom 4–17.
+   Dipakai untuk menggambar bentuk tabel sesuai bentuk aslinya,
+   termasuk sel yang bukan bagian kasus (redup/statis).
+   ========================================================= */
+const REAL_ELEMENTS = {
+  1: { 1:"H", 18:"He" },
+  2: { 1:"Li", 2:"Be", 13:"B", 14:"C", 15:"N", 16:"O", 17:"F", 18:"Ne" },
+  3: { 1:"Na", 2:"Mg", 13:"Al", 14:"Si", 15:"P", 16:"S", 17:"Cl", 18:"Ar" },
+  4: { 1:"K", 2:"Ca", 3:"Sc", 4:"Ti", 5:"V", 6:"Cr", 7:"Mn", 8:"Fe", 9:"Co",
+       10:"Ni", 11:"Cu", 12:"Zn", 13:"Ga", 14:"Ge", 15:"As", 16:"Se", 17:"Br", 18:"Kr" },
+  5: { 1:"Rb", 2:"Sr", 3:"Y", 4:"Zr", 5:"Nb", 6:"Mo", 7:"Tc", 8:"Ru", 9:"Rh",
+       10:"Pd", 11:"Ag", 12:"Cd", 13:"In", 14:"Sn", 15:"Sb", 16:"Te", 17:"I", 18:"Xe" },
+  6: { 1:"Cs", 2:"Ba", 3:"La", 4:"Hf", 5:"Ta", 6:"W", 7:"Re", 8:"Os", 9:"Ir",
+       10:"Pt", 11:"Au", 12:"Hg", 13:"Tl", 14:"Pb", 15:"Bi", 16:"Po", 17:"At", 18:"Rn" },
+  7: { 1:"Fr", 2:"Ra", 3:"Ac", 4:"Rf", 5:"Db", 6:"Sg", 7:"Bh", 8:"Hs", 9:"Mt",
+       10:"Ds", 11:"Rg", 12:"Cn", 13:"Nh", 14:"Fl", 15:"Mc", 16:"Lv", 17:"Ts", 18:"Og" }
+};
+const LANTH_ROW = ["Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu"]; // kolom 4–17
+const ACTIN_ROW = ["Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr"];  // kolom 4–17
+
+/* =========================================================
+   DATA SETIAP UNSUR (nama Indonesia, Z, konfigurasi elektron)
+   Meliputi seluruh 118 unsur supaya seluruh papan tabel periodik
+   bisa disusun penuh, bukan cuma sebagian kecil.
+   `note` dipakai untuk unsur dengan pengecualian kestabilan
+   ekstra (elektron "pindah" subkulit demi d⁵/d¹⁰ penuh/setengah).
+   ========================================================= */
+const ELEMENT_INFO = {
+  H:{z:1,name:"Hidrogen",config:"1s¹"},
+  He:{z:2,name:"Helium",config:"1s²",note:"Helium unik: 2 elektronnya penuh mengisi 1s² (harusnya blok s), tapi ditaruh di kolom 18 bareng gas mulia lain karena sifat kimianya sangat stabil/inert seperti mereka."},
+  Li:{z:3,name:"Litium",config:"[He] 2s¹"},
+  Be:{z:4,name:"Berilium",config:"[He] 2s²"},
+  B:{z:5,name:"Boron",config:"[He] 2s² 2p¹"},
+  C:{z:6,name:"Karbon",config:"[He] 2s² 2p²"},
+  N:{z:7,name:"Nitrogen",config:"[He] 2s² 2p³"},
+  O:{z:8,name:"Oksigen",config:"[He] 2s² 2p⁴"},
+  F:{z:9,name:"Fluor",config:"[He] 2s² 2p⁵"},
+  Ne:{z:10,name:"Neon",config:"[He] 2s² 2p⁶"},
+  Na:{z:11,name:"Natrium",config:"[Ne] 3s¹"},
+  Mg:{z:12,name:"Magnesium",config:"[Ne] 3s²"},
+  Al:{z:13,name:"Aluminium",config:"[Ne] 3s² 3p¹"},
+  Si:{z:14,name:"Silikon",config:"[Ne] 3s² 3p²"},
+  P:{z:15,name:"Fosforus",config:"[Ne] 3s² 3p³"},
+  S:{z:16,name:"Belerang",config:"[Ne] 3s² 3p⁴"},
+  Cl:{z:17,name:"Klorin",config:"[Ne] 3s² 3p⁵"},
+  Ar:{z:18,name:"Argon",config:"[Ne] 3s² 3p⁶"},
+  K:{z:19,name:"Kalium",config:"[Ar] 4s¹"},
+  Ca:{z:20,name:"Kalsium",config:"[Ar] 4s²"},
+  Sc:{z:21,name:"Skandium",config:"[Ar] 4s² 3d¹"},
+  Ti:{z:22,name:"Titanium",config:"[Ar] 4s² 3d²"},
+  V:{z:23,name:"Vanadium",config:"[Ar] 4s² 3d³"},
+  Cr:{z:24,name:"Kromium",config:"[Ar] 4s¹ 3d⁵",note:"Kestabilan d⁵ (setengah penuh): 1 elektron pindah dari 4s ke 3d."},
+  Mn:{z:25,name:"Mangan",config:"[Ar] 4s² 3d⁵"},
+  Fe:{z:26,name:"Besi",config:"[Ar] 4s² 3d⁶",note:"d⁶ → aturan khusus: semua d⁶, d⁷, d⁸ masuk golongan VIIIB."},
+  Co:{z:27,name:"Kobalt",config:"[Ar] 4s² 3d⁷"},
+  Ni:{z:28,name:"Nikel",config:"[Ar] 4s² 3d⁸"},
+  Cu:{z:29,name:"Tembaga",config:"[Ar] 4s¹ 3d¹⁰",note:"Kestabilan d¹⁰ (penuh): 1 elektron pindah dari 4s ke 3d."},
+  Zn:{z:30,name:"Seng",config:"[Ar] 4s² 3d¹⁰"},
+  Ga:{z:31,name:"Galium",config:"[Ar] 3d¹⁰ 4s² 4p¹"},
+  Ge:{z:32,name:"Germanium",config:"[Ar] 3d¹⁰ 4s² 4p²"},
+  As:{z:33,name:"Arsen",config:"[Ar] 3d¹⁰ 4s² 4p³"},
+  Se:{z:34,name:"Selenium",config:"[Ar] 3d¹⁰ 4s² 4p⁴"},
+  Br:{z:35,name:"Bromin",config:"[Ar] 3d¹⁰ 4s² 4p⁵"},
+  Kr:{z:36,name:"Kripton",config:"[Ar] 3d¹⁰ 4s² 4p⁶"},
+  Rb:{z:37,name:"Rubidium",config:"[Kr] 5s¹"},
+  Sr:{z:38,name:"Stronsium",config:"[Kr] 5s²"},
+  Y:{z:39,name:"Itrium",config:"[Kr] 5s² 4d¹"},
+  Zr:{z:40,name:"Zirkonium",config:"[Kr] 5s² 4d²"},
+  Nb:{z:41,name:"Niobium",config:"[Kr] 5s¹ 4d⁴",note:"Sama seperti Cr: 1 elektron pindah dari 5s ke 4d demi kestabilan tambahan."},
+  Mo:{z:42,name:"Molibdenum",config:"[Kr] 5s¹ 4d⁵",note:"Kestabilan d⁵ (setengah penuh), pola sama seperti Cr."},
+  Tc:{z:43,name:"Teknesium",config:"[Kr] 5s² 4d⁵"},
+  Ru:{z:44,name:"Rutenium",config:"[Kr] 5s¹ 4d⁷",note:"1 elektron pindah dari 5s ke 4d, pola serupa Cr/Mo."},
+  Rh:{z:45,name:"Rodium",config:"[Kr] 5s¹ 4d⁸",note:"1 elektron pindah dari 5s ke 4d."},
+  Pd:{z:46,name:"Paladium",config:"[Kr] 4d¹⁰",note:"Sangat unik: semua elektron valensinya di 4d, subkulit 5s-nya kosong."},
+  Ag:{z:47,name:"Perak",config:"[Kr] 5s¹ 4d¹⁰",note:"Kestabilan d¹⁰ (penuh), pola sama seperti Cu."},
+  Cd:{z:48,name:"Kadmium",config:"[Kr] 5s² 4d¹⁰"},
+  In:{z:49,name:"Indium",config:"[Kr] 4d¹⁰ 5s² 5p¹"},
+  Sn:{z:50,name:"Timah",config:"[Kr] 4d¹⁰ 5s² 5p²"},
+  Sb:{z:51,name:"Antimon",config:"[Kr] 4d¹⁰ 5s² 5p³"},
+  Te:{z:52,name:"Telurium",config:"[Kr] 4d¹⁰ 5s² 5p⁴"},
+  I:{z:53,name:"Iodin",config:"[Kr] 4d¹⁰ 5s² 5p⁵"},
+  Xe:{z:54,name:"Xenon",config:"[Kr] 4d¹⁰ 5s² 5p⁶"},
+  Cs:{z:55,name:"Sesium",config:"[Xe] 6s¹"},
+  Ba:{z:56,name:"Barium",config:"[Xe] 6s²"},
+  La:{z:57,name:"Lantanum",config:"[Xe] 6s² 5d¹"},
+  Hf:{z:72,name:"Hafnium",config:"[Xe] 6s² 4f¹⁴ 5d²"},
+  Ta:{z:73,name:"Tantalum",config:"[Xe] 6s² 4f¹⁴ 5d³"},
+  W:{z:74,name:"Wolfram",config:"[Xe] 6s² 4f¹⁴ 5d⁴"},
+  Re:{z:75,name:"Renium",config:"[Xe] 6s² 4f¹⁴ 5d⁵"},
+  Os:{z:76,name:"Osmium",config:"[Xe] 6s² 4f¹⁴ 5d⁶"},
+  Ir:{z:77,name:"Iridium",config:"[Xe] 6s² 4f¹⁴ 5d⁷"},
+  Pt:{z:78,name:"Platina",config:"[Xe] 6s¹ 4f¹⁴ 5d⁹",note:"1 elektron pindah dari 6s ke 5d, pola serupa Cr/Cu."},
+  Au:{z:79,name:"Emas",config:"[Xe] 6s¹ 4f¹⁴ 5d¹⁰",note:"Kestabilan d¹⁰ (penuh), pola sama seperti Cu/Ag."},
+  Hg:{z:80,name:"Raksa",config:"[Xe] 6s² 4f¹⁴ 5d¹⁰"},
+  Tl:{z:81,name:"Talium",config:"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹"},
+  Pb:{z:82,name:"Timbal",config:"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²"},
+  Bi:{z:83,name:"Bismut",config:"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³"},
+  Po:{z:84,name:"Polonium",config:"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴"},
+  At:{z:85,name:"Astatin",config:"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵"},
+  Rn:{z:86,name:"Radon",config:"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶"},
+  Fr:{z:87,name:"Fransium",config:"[Rn] 7s¹"},
+  Ra:{z:88,name:"Radium",config:"[Rn] 7s²"},
+  Ac:{z:89,name:"Aktinium",config:"[Rn] 7s² 6d¹"},
+  Rf:{z:104,name:"Ruterfordium",config:"[Rn] 7s² 5f¹⁴ 6d²"},
+  Db:{z:105,name:"Dubnium",config:"[Rn] 7s² 5f¹⁴ 6d³"},
+  Sg:{z:106,name:"Seaborgium",config:"[Rn] 7s² 5f¹⁴ 6d⁴"},
+  Bh:{z:107,name:"Bohrium",config:"[Rn] 7s² 5f¹⁴ 6d⁵"},
+  Hs:{z:108,name:"Hasium",config:"[Rn] 7s² 5f¹⁴ 6d⁶"},
+  Mt:{z:109,name:"Meitnerium",config:"[Rn] 7s² 5f¹⁴ 6d⁷"},
+  Ds:{z:110,name:"Darmstadtium",config:"[Rn] 7s² 5f¹⁴ 6d⁸"},
+  Rg:{z:111,name:"Rontgenium",config:"[Rn] 7s² 5f¹⁴ 6d⁹"},
+  Cn:{z:112,name:"Kopernisium",config:"[Rn] 7s² 5f¹⁴ 6d¹⁰"},
+  Nh:{z:113,name:"Nihonium",config:"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹"},
+  Fl:{z:114,name:"Flerovium",config:"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²"},
+  Mc:{z:115,name:"Moskovium",config:"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³"},
+  Lv:{z:116,name:"Livermorium",config:"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴"},
+  Ts:{z:117,name:"Tenesin",config:"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵"},
+  Og:{z:118,name:"Oganeson",config:"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶"}
+};
+// Nama & nomor atom lantanida/aktinida. Konfigurasi disusun otomatis
+// (pola disederhanakan 4fⁿ/5fⁿ) oleh buildFBlockElements di bawah.
+const LANTH_INFO = {
+  Ce:{z:58,name:"Serium"}, Pr:{z:59,name:"Praseodimium"}, Nd:{z:60,name:"Neodimium"},
+  Pm:{z:61,name:"Prometium"}, Sm:{z:62,name:"Samarium"}, Eu:{z:63,name:"Europium"},
+  Gd:{z:64,name:"Gadolinium"}, Tb:{z:65,name:"Terbium"}, Dy:{z:66,name:"Disprosium"},
+  Ho:{z:67,name:"Holmium"}, Er:{z:68,name:"Erbium"}, Tm:{z:69,name:"Tulium"},
+  Yb:{z:70,name:"Iterbium"}, Lu:{z:71,name:"Lutesium"}
+};
+const ACTIN_INFO = {
+  Th:{z:90,name:"Torium"}, Pa:{z:91,name:"Protaktinium"}, U:{z:92,name:"Uranium"},
+  Np:{z:93,name:"Neptunium"}, Pu:{z:94,name:"Plutonium"}, Am:{z:95,name:"Amerisium"},
+  Cm:{z:96,name:"Kurium"}, Bk:{z:97,name:"Berkelium"}, Cf:{z:98,name:"Kalifornium"},
+  Es:{z:99,name:"Einsteinium"}, Fm:{z:100,name:"Fermium"}, Md:{z:101,name:"Mendelevium"},
+  No:{z:102,name:"Nobelium"}, Lr:{z:103,name:"Lawrensium"}
+};
+
+function superscript(n) {
+  const map = {0:"⁰",1:"¹",2:"²",3:"³",4:"⁴",5:"⁵",6:"⁶",7:"⁷",8:"⁸",9:"⁹"};
+  return String(n).split("").map(d => map[d]).join("");
+}
+
+// Blok ditentukan dari kolom (golongan): 1–2 → s, 3–12 → d, 13–18 → p.
+// Pengecualian: Helium konfigurasinya 1s² (blok s) walau posisinya di kolom 18.
+function blockForCol(col, symbol) {
+  if (symbol === "He") return "s";
+  if (col === 1 || col === 2) return "s";
+  if (col >= 3 && col <= 12) return "d";
+  return "p";
+}
+const GROUP_OF_COL = {
+  1:"IA", 2:"IIA", 3:"IIIB", 4:"IVB", 5:"VB", 6:"VIB", 7:"VIIB",
+  8:"VIIIB", 9:"VIIIB", 10:"VIIIB", 11:"IB", 12:"IIB",
+  13:"IIIA", 14:"IVA", 15:"VA", 16:"VIA", 17:"VIIA", 18:"VIIIA"
+};
+
+// Membangun daftar unsur satu blok (s/p/d) langsung dari REAL_ELEMENTS,
+// jadi tidak perlu menulis ulang periode/kolom tiap unsur secara manual.
+function buildMainBlockElements(blockKey) {
+  const out = [];
+  for (let period = 1; period <= 7; period++) {
+    const row = REAL_ELEMENTS[period] || {};
+    for (let col = 1; col <= 18; col++) {
+      const symbol = row[col];
+      if (!symbol || blockForCol(col, symbol) !== blockKey) continue;
+      const info = ELEMENT_INFO[symbol];
+      out.push({
+        symbol, name: info.name, z: info.z, config: info.config,
+        period, col, group: GROUP_OF_COL[col], note: info.note
+      });
+    }
+  }
+  return out;
+}
+
+// Membangun seluruh deret lantanida + aktinida untuk blok f.
+function buildFBlockElements() {
+  const out = [];
+  [
+    { arr: LANTH_ROW, info: LANTH_INFO, period: 6, specialRow: "lanth", base: "[Xe] 6s²", sub: "4f" },
+    { arr: ACTIN_ROW, info: ACTIN_INFO, period: 7, specialRow: "actin", base: "[Rn] 7s²", sub: "5f" }
+  ].forEach(row => {
+    row.arr.forEach((symbol, idx) => {
+      const info = row.info[symbol];
+      out.push({
+        symbol, name: info.name, z: info.z,
+        config: `${row.base} ${row.sub}${superscript(idx + 1)}`,
+        period: row.period, specialRow: row.specialRow, col: idx + 4, group: "IIIB"
+      });
+    });
+  });
+  return out;
+}
+
+/* =========================================================
+   DATA MATERI & SOAL
+   Tiap unsur kasus punya posisi asli di tabel: period + col
+   (golongan 1–18), atau specialRow ("lanth"/"actin") + col
+   untuk blok f (posisinya di deret lantanida/aktinida).
+   ========================================================= */
+const BLOCKS = [
+  {
+    key: "s", title: "Blok s", color: "s",
+    intro: [
+      {
+        h: "Kasus 01 — Blok s",
+        p: [
+          "Setiap unsur punya jejak berupa konfigurasi elektron. Blok ditentukan dari subkulit tempat elektron TERAKHIR mengisi (asas Aufbau).",
+          "Blok s: elektron terakhir masuk subkulit <strong>ns</strong>. Golongannya IA atau IIA."
+        ]
+      },
+      {
+        h: "Menentukan Golongan",
+        p: [
+          "Rumusnya sederhana: jumlah elektron di subkulit ns menentukan golongan.",
+          "ns¹ → golongan IA (kolom 1). ns² → golongan IIA (kolom 2)."
+        ],
+        example: "Na = [Ne] 3s¹ &nbsp;→&nbsp; 3s¹ &nbsp;→&nbsp; golongan IA, kolom 1"
+      },
+      {
+        h: "Menentukan Periode",
+        p: [
+          "Periode = nomor kulit (n) terbesar yang ditempati elektron valensi = nomor BARIS di tabel periodik."
+        ],
+        example: "Ca = [Ar] 4s² &nbsp;→&nbsp; kulit ke-4 &nbsp;→&nbsp; baris (periode) 4"
+      }
+    ],
+    elements: buildMainBlockElements("s")
+  },
+  {
+    key: "p", title: "Blok p", color: "p",
+    intro: [
+      {
+        h: "Kasus 02 — Blok p",
+        p: [
+          "Blok p: elektron terakhir masuk subkulit <strong>np</strong>, setelah ns terisi penuh.",
+          "Golongannya membentang dari kolom 13 sampai 18 (IIIA–VIIIA) di sisi kanan tabel."
+        ]
+      },
+      {
+        h: "Menentukan Golongan",
+        p: [
+          "Golongan (kolom) = 10 + jumlah elektron pada ns dan np."
+        ],
+        example: "O = [He] 2s² 2p⁴ &nbsp;→&nbsp; 2+4=6 &nbsp;→&nbsp; 10+6=16 &nbsp;→&nbsp; kolom 16 (VIA)"
+      },
+      {
+        h: "Menentukan Periode",
+        p: [
+          "Sama seperti blok s — periode = baris tempat unsur berada."
+        ],
+        example: "Cl = [Ne] 3s² 3p⁵ &nbsp;→&nbsp; baris (periode) 3"
+      }
+    ],
+    elements: buildMainBlockElements("p")
+  },
+  {
+    key: "d", title: "Blok d", color: "d",
+    intro: [
+      {
+        h: "Kasus 03 — Blok d",
+        p: [
+          "Blok d: elektron terakhir masuk subkulit <strong>(n-1)d</strong>. Golongan transisi, kolom 3 sampai 12 di tengah tabel."
+        ]
+      },
+      {
+        h: "Menentukan Golongan (aturan umum)",
+        p: [
+          "Golongan (kolom) = jumlah elektron (n-1)d + ns.",
+          "Pengecualian: d⁶, d⁷, d⁸ semuanya masuk golongan VIIIB (kolom 8–10). d¹⁰ dengan ns² → IIB (kolom 12), dengan ns¹ → IB (kolom 11)."
+        ],
+        example: "Fe = [Ar] 4s² 3d⁶ &nbsp;→&nbsp; d⁶ &nbsp;→&nbsp; golongan VIIIB"
+      },
+      {
+        h: "⚠ Pengecualian Kestabilan Ekstra",
+        p: [
+          "Konfigurasi <strong>d⁵ (setengah penuh)</strong> dan <strong>d¹⁰ (penuh)</strong> lebih stabil. Satu elektron dari ns 'pindah' ke (n-1)d supaya susunan ini tercapai.",
+          "Cr seharusnya [Ar]4s²3d⁴, tapi kenyataannya [Ar]4s¹3d⁵. Cu seharusnya [Ar]4s²3d⁹, tapi jadi [Ar]4s¹3d¹⁰."
+        ],
+        example: "Cr = [Ar] 4s¹ 3d⁵ &nbsp;•&nbsp; Cu = [Ar] 4s¹ 3d¹⁰"
+      },
+      {
+        h: "Golongan Tetap Dihitung dari Total",
+        p: [
+          "Walau elektron berpindah subkulit, cara hitung golongan tetap: jumlahkan SEMUA elektron valensi (ns + (n-1)d)."
+        ],
+        example: "Cr: 1+5=6 → VIB (kolom 6) &nbsp;&nbsp;|&nbsp;&nbsp; Cu: 1+10=11 → IB (kolom 11)"
+      }
+    ],
+    elements: buildMainBlockElements("d")
+  },
+  {
+    key: "f", title: "Blok f", color: "f",
+    intro: [
+      {
+        h: "Kasus 04 — Blok f (opsional)",
+        p: [
+          "Blok f: elektron terakhir masuk subkulit <strong>(n-2)f</strong>. Ini kelompok lantanida (periode 6) dan aktinida (periode 7), digambar terpisah di bawah tabel periodik utama."
+        ]
+      },
+      {
+        h: "Golongan Blok f",
+        p: [
+          "Semua unsur blok f ditempatkan di golongan IIIB. Karena golongannya selalu sama, latihan blok ini fokus pada satu hal saja: menentukan apakah unsur itu lantanida (baris terpisah periode 6) atau aktinida (baris terpisah periode 7), lalu urutannya sesuai jumlah elektron f."
+        ],
+        example: "Lantanida = periode 6 &nbsp;•&nbsp; Aktinida = periode 7"
+      }
+    ],
+    elements: buildFBlockElements()
+  }
+];
+
+/* Indeks posisi → kasus, dibangun sekali di awal.
+   key "period-col" untuk tabel utama, "flanth-col" / "factin-col"
+   untuk deret lantanida/aktinida. */
+function cellKeyFor(el) {
+  if (el.specialRow === "lanth") return `flanth-${el.col}`;
+  if (el.specialRow === "actin") return `factin-${el.col}`;
+  return `${el.period}-${el.col}`;
+}
+const CELL_INDEX = {};
+BLOCKS.forEach((block, bi) => {
+  block.elements.forEach(el => {
+    const key = cellKeyFor(el);
+    CELL_INDEX[key] = { element: el, blockIndex: bi, blockKey: block.key };
+  });
+});
+
+/* =========================================================
+   STATE
+   solvedMap bertahan sepanjang permainan (tidak direset antar
+   blok) — inilah yang membuat riwayat pengisian tidak hilang.
+   ========================================================= */
+const solvedMap = {};
+
+const state = {
+  nama: "",
+  kelas: "",
+  blockIndex: 0,
+  introCardIndex: 0,
+  blockScore: 0,
+  scores: [],
+  firstDragDone: false,
+  blockFinished: false,
+  timerId: null,
+  timeLeft: BLOCK_TIME_SECONDS
+};
+
+/* =========================================================
+   AUDIO — Web Audio API synth, no external files
+   ========================================================= */
+const Audio_ = (() => {
+  let actx = null, master = null, bgTimer = null, muted = false, savedVol = 0.5;
+
+  function ensure() {
+    if (actx) return;
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    master = actx.createGain();
+    master.gain.value = savedVol;
+    master.connect(actx.destination);
+  }
+
+  function tone(freq, dur, type, delay, gainPeak) {
+    if (!actx) return;
+    const t0 = actx.currentTime + (delay || 0);
+    const osc = actx.createOscillator();
+    const g = actx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(gainPeak || 0.18, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(master);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }
+
+  const PENTA = [261.6, 293.7, 329.6, 392.0, 440.0];
+  function scheduleBgLoop() {
+    let i = 0;
+    bgTimer = setInterval(() => {
+      if (!actx) return;
+      const f = PENTA[i % PENTA.length] / 2;
+      tone(f, 1.1, "sine", 0, 0.045);
+      i++;
+    }, 1300);
+  }
+
+  return {
+    unlock() { ensure(); if (actx.state === "suspended") actx.resume(); if (!bgTimer) scheduleBgLoop(); },
+    dragStart() { ensure(); tone(420, 0.08, "triangle", 0, 0.12); },
+    correct() { ensure(); tone(660, 0.12, "sine", 0, 0.2); tone(880, 0.16, "sine", 0.1, 0.2); },
+    wrong() { ensure(); tone(160, 0.22, "square", 0, 0.12); },
+    blockDone() { ensure(); [523, 659, 784].forEach((f, idx) => tone(f, 0.22, "sine", idx * 0.14, 0.18)); },
+    finalDone() { ensure(); [392, 523, 659, 784, 987].forEach((f, idx) => tone(f, 0.28, "sine", idx * 0.13, 0.18)); },
+    toggleMute() {
+      ensure();
+      muted = !muted;
+      master.gain.setTargetAtTime(muted ? 0 : savedVol, actx.currentTime, 0.05);
+      return muted;
+    },
+    isMuted() { return muted; }
+  };
+})();
+
+/* =========================================================
+   CONFETTI — lightweight, no external library
+   ========================================================= */
+function confettiBurst(count) {
+  const layer = document.getElementById("confettiLayer");
+  const colors = ["#e3a23c", "#3f8f82", "#c4573f", "#f4efe3", "#8aa0c4"];
+  for (let i = 0; i < (count || 24); i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "vw";
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDuration = (1.6 + Math.random() * 1.2) + "s";
+    piece.style.animationDelay = (Math.random() * 0.3) + "s";
+    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 3200);
+  }
+}
+
+/* =========================================================
+   SCREEN HELPERS
+   ========================================================= */
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+}
+
+function showToast(text, isWrong) {
+  const toast = document.getElementById("feedbackToast");
+  toast.innerHTML = text;
+  toast.classList.toggle("wrong", !!isWrong);
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 3200);
+}
+
+/* =========================================================
+   PAPAN TABEL PERIODIK
+   ========================================================= */
+function cellStateFor(key) {
+  const info = CELL_INDEX[key];
+  if (!info) return null;
+  if (solvedMap[key]) return { status: "solved", info };
+  if (info.blockIndex <= state.blockIndex) return { status: "active", info };
+  return { status: "locked", info };
+}
+
+function buildCellNode(key, cs, interactive) {
+  const cellEl = document.createElement("div");
+  if (!cs) {
+    cellEl.className = "pt-cell pt-inert";
+    return cellEl;
+  }
+  if (cs.status === "solved") {
+    cellEl.className = `pt-cell pt-solved pt-c-${cs.info.blockKey}`;
+    cellEl.innerHTML = `<span class="pt-sym">${cs.info.element.symbol}</span>`;
+  } else if (cs.status === "active" && interactive) {
+    cellEl.className = "pt-cell pt-active";
+    cellEl.dataset.cellkey = key;
+  } else if (cs.status === "active") {
+    cellEl.className = "pt-cell pt-pending";
+  } else {
+    cellEl.className = "pt-cell pt-locked";
+  }
+  return cellEl;
+}
+
+function renderBoard(container, opts) {
+  opts = opts || {};
+  container.innerHTML = "";
+  container.classList.toggle("pt-compact", !!opts.compact);
+
+  // ---- tabel utama: periode 1–7, golongan 1–18 ----
+  const grid = document.createElement("div");
+  grid.className = "pt-grid";
+
+  for (let period = 1; period <= 7; period++) {
+    const label = document.createElement("div");
+    label.className = "pt-label";
+    label.style.gridColumn = "1";
+    label.style.gridRow = String(period);
+    label.textContent = period;
+    grid.appendChild(label);
+
+    for (let col = 1; col <= 18; col++) {
+      const real = (REAL_ELEMENTS[period] || {})[col];
+      const cellEl = document.createElement("div");
+      cellEl.style.gridColumn = String(col + 1);
+      cellEl.style.gridRow = String(period);
+
+      if (!real) {
+        cellEl.className = "pt-void";
+        grid.appendChild(cellEl);
+        continue;
+      }
+
+      const key = `${period}-${col}`;
+      const cs = cellStateFor(key);
+      const node = buildCellNode(key, cs, opts.interactive);
+      node.style.gridColumn = String(col + 1);
+      node.style.gridRow = String(period);
+      grid.appendChild(node);
+    }
+  }
+  container.appendChild(grid);
+
+  // ---- deret lantanida & aktinida, terpisah di bawah (kolom 4–17) ----
+  const strip = document.createElement("div");
+  strip.className = "pt-grid pt-strip";
+  [
+    { rowNum: 1, label: "6f", arr: LANTH_ROW, prefix: "flanth" },
+    { rowNum: 2, label: "7f", arr: ACTIN_ROW, prefix: "factin" }
+  ].forEach(row => {
+    const label = document.createElement("div");
+    label.className = "pt-label";
+    label.style.gridColumn = "1";
+    label.style.gridRow = String(row.rowNum);
+    label.textContent = row.label;
+    strip.appendChild(label);
+
+    for (let col = 1; col <= 18; col++) {
+      const idx = col - 4; // simbol menempati kolom 4–17
+      const real = (idx >= 0 && idx < row.arr.length) ? row.arr[idx] : null;
+      const cellEl = document.createElement("div");
+      cellEl.style.gridColumn = String(col + 1);
+      cellEl.style.gridRow = String(row.rowNum);
+
+      if (!real) {
+        cellEl.className = "pt-void";
+        strip.appendChild(cellEl);
+        continue;
+      }
+
+      const key = `${row.prefix}-${col}`;
+      const cs = cellStateFor(key);
+      const node = buildCellNode(key, cs, opts.interactive);
+      node.style.gridColumn = String(col + 1);
+      node.style.gridRow = String(row.rowNum);
+      strip.appendChild(node);
+    }
+  });
+  container.appendChild(strip);
+}
+
+/* =========================================================
+   INTRO DECK
+   ========================================================= */
+function renderIntro() {
+  const block = BLOCKS[state.blockIndex];
+  state.introCardIndex = 0;
+  document.getElementById("blockProgressFill").style.width =
+    ((state.blockIndex) / BLOCKS.length * 100) + "%";
+  document.getElementById("blockProgressLabel").textContent =
+    `Blok ${state.blockIndex + 1} / ${BLOCKS.length}`;
+  document.getElementById("introEyebrow").textContent = `KASUS 0${state.blockIndex + 1}`;
+  document.getElementById("introBlockTitle").textContent = block.title;
+  renderIntroCard();
+  renderBoard(document.getElementById("ptBoardIntro"), { interactive: false, compact: true });
+  showScreen("screen-intro");
+}
+
+function renderIntroCard() {
+  const block = BLOCKS[state.blockIndex];
+  const card = block.intro[state.introCardIndex];
+  const deck = document.getElementById("introDeck");
+  deck.innerHTML = `
+    <h3>${card.h}</h3>
+    ${card.p.map(t => `<p>${t}</p>`).join("")}
+    ${card.example ? `<div class="example-box">${card.example}</div>` : ""}
+  `;
+  const dots = document.getElementById("introDots");
+  dots.innerHTML = block.intro.map((_, i) =>
+    `<span class="${i === state.introCardIndex ? "on" : ""}"></span>`
+  ).join("");
+  document.getElementById("btnIntroBack").style.visibility =
+    state.introCardIndex === 0 ? "hidden" : "visible";
+  document.getElementById("btnIntroNext").textContent =
+    state.introCardIndex === block.intro.length - 1 ? "Mulai Latihan →" : "Lanjut ›";
+}
+
+document.getElementById("btnIntroBack").addEventListener("click", () => {
+  if (state.introCardIndex > 0) { state.introCardIndex--; renderIntroCard(); }
+});
+document.getElementById("btnIntroNext").addEventListener("click", () => {
+  const block = BLOCKS[state.blockIndex];
+  if (state.introCardIndex < block.intro.length - 1) {
+    state.introCardIndex++;
+    renderIntroCard();
+  } else {
+    startPractice();
+  }
+});
+
+/* =========================================================
+   TIMER PER BLOK — 20 menit
+   ========================================================= */
+function startTimer() {
+  clearInterval(state.timerId);
+  state.timeLeft = BLOCK_TIME_SECONDS;
+  updateTimerDisplay();
+  state.timerId = setInterval(() => {
+    state.timeLeft--;
+    updateTimerDisplay();
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timerId);
+      showToast("⏰ Waktu blok ini habis! Kasus ditutup paksa.", true);
+      setTimeout(() => finishBlock(true), 900);
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(state.timeLeft / 60);
+  const s = state.timeLeft % 60;
+  const txt = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const el = document.getElementById("timerDisplay");
+  el.textContent = `⏱ ${txt}`;
+  el.classList.toggle("timer-warn", state.timeLeft <= 60);
+}
+
+/* =========================================================
+   PRACTICE (drag ke tabel periodik)
+   ========================================================= */
+function startPractice() {
+  state.blockScore = 0;
+  state.blockFinished = false;
+  renderPracticeTray();
+  showScreen("screen-practice");
+  startTimer();
+}
+
+function currentBlock() { return BLOCKS[state.blockIndex]; }
+
+// Unsur blok ini yang belum ditempatkan dengan benar (dipakai untuk isi tray
+// dan mengecek apakah blok sudah selesai).
+function remainingElements() {
+  return currentBlock().elements.filter(el => !solvedMap[cellKeyFor(el)]);
+}
+
+function updateProgressLabel() {
+  const block = currentBlock();
+  const total = block.elements.length;
+  const done = total - remainingElements().length;
+  document.getElementById("practiceProgressFill").style.width = (done / total * 100) + "%";
+  document.getElementById("practiceProgressLabel").textContent = `Tersusun ${done} / ${total}`;
+}
+
+// Semua kartu unsur blok ini disebar sekaligus (bukan satu per satu) —
+// murid bebas pilih kartu mana dulu, dan sel tabel periodik untuk blok ini
+// semua kosong ("?") dari awal, siap diisi dalam urutan bebas.
+function renderPracticeTray() {
+  const block = currentBlock();
+
+  document.getElementById("practiceEyebrow").textContent =
+    `${block.title.toUpperCase()} — SUSUN KE TABEL PERIODIK`;
+  document.getElementById("scoreChip").textContent = state.blockScore;
+  document.getElementById("practiceInstruction").textContent =
+    "Tahan kartu mana pun, lalu seret ke sel tabel periodik yang menurutmu tepat. Urutan bebas.";
+  document.getElementById("topbarCase").textContent =
+    `${state.nama || "Detektif"} · ${block.title}`;
+  updateProgressLabel();
+
+  const tray = document.getElementById("cardTray");
+  tray.innerHTML = "";
+  remainingElements().forEach(el => {
+    const card = document.createElement("div");
+    card.className = "evidence-card";
+    card.innerHTML = `
+      <div class="evidence-symbol">${el.symbol}</div>
+      <div class="evidence-name">${el.name}</div>
+      <div class="evidence-z">Z = ${el.z}</div>
+      <div class="evidence-config">${el.config}</div>
+    `;
+    tray.appendChild(card);
+    attachDragHandlers(card, el);
+  });
+
+  renderBoard(document.getElementById("ptBoard"), { interactive: true });
+
+  // one-time tutorial pulse
+  if (!state.firstDragDone) {
+    const firstActive = document.querySelector("#ptBoard .pt-active");
+    if (firstActive) {
+      firstActive.classList.add("target-hover");
+      setTimeout(() => firstActive.classList.remove("target-hover"), 1400);
+    }
+  }
+}
+
+function attachDragHandlers(card, el) {
+  let offX = 0, offY = 0, moved = false, wrongCount = 0;
+
+  function onDown(e) {
+    if (card.classList.contains("settled")) return;
+    Audio_.unlock();
+    Audio_.dragStart();
+    const p = pointFromEvent(e);
+    const rect = card.getBoundingClientRect();
+    offX = p.x - rect.left;
+    offY = p.y - rect.top;
+    card.style.position = "fixed";
+    card.style.left = rect.left + "px";
+    card.style.top = rect.top + "px";
+    card.style.width = rect.width + "px";
+    card.style.margin = "0";
+    card.classList.add("dragging");
+    moved = false;
+    card.setPointerCapture && e.pointerId != null && card.setPointerCapture(e.pointerId);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function onMove(e) {
+    moved = true;
+    const p = pointFromEvent(e);
+    card.style.left = (p.x - offX) + "px";
+    card.style.top = (p.y - offY) + "px";
+    const target = elementUnderPoint(p.x, p.y);
+    document.querySelectorAll(".pt-active").forEach(b => b.classList.remove("target-hover"));
+    if (target) target.classList.add("target-hover");
+  }
+
+  function onUp(e) {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    card.classList.remove("dragging");
+    const p = pointFromEvent(e);
+    const target = elementUnderPoint(p.x, p.y);
+    document.querySelectorAll(".pt-active").forEach(b => b.classList.remove("target-hover"));
+
+    if (!moved || !target) {
+      resetCardPosition(card);
+      return;
+    }
+
+    const expectedKey = cellKeyFor(el);
+    const guessKey = target.dataset.cellkey;
+
+    if (guessKey === expectedKey) {
+      solvedMap[expectedKey] = true;
+      const points = Math.max(2, 10 - wrongCount * 3);
+      state.blockScore += points;
+      document.getElementById("scoreChip").textContent = state.blockScore;
+      Audio_.correct();
+      confettiBurst(14);
+      card.classList.add("settled");
+      resetCardPosition(card);
+      showToast(explainPlacement(el), false);
+      renderBoard(document.getElementById("ptBoard"), { interactive: true });
+      state.firstDragDone = true;
+      setTimeout(() => {
+        card.remove();
+        updateProgressLabel();
+        if (remainingElements().length === 0) finishBlock(false);
+      }, 550);
+    } else {
+      target.classList.add("wrong-flash");
+      Audio_.wrong();
+      wrongCount++;
+      showToast(`Belum tepat. ${el.symbol} bukan di sel itu. Cek lagi golongan &amp; periodenya.`, true);
+      resetCardPosition(card);
+      setTimeout(() => target.classList.remove("wrong-flash"), 500);
+    }
+  }
+
+  card.onpointerdown = onDown;
+}
+
+function pointFromEvent(e) { return { x: e.clientX, y: e.clientY }; }
+
+function elementUnderPoint(x, y) {
+  const els = document.elementsFromPoint(x, y);
+  return els.find(el => el.classList && el.classList.contains("pt-active")) || null;
+}
+
+function resetCardPosition(card) {
+  card.style.position = "";
+  card.style.left = "";
+  card.style.top = "";
+  card.style.width = "";
+  card.style.margin = "";
+}
+
+function explainPlacement(el) {
+  const base = `<strong>${el.symbol} (${el.name})</strong> → golongan <strong>${el.group}</strong>, periode <strong>${el.period}</strong> — konfigurasi ${el.config}.`;
+  const note = el.note ? ` ${el.note}` : "";
+  return base + note;
+}
+
+/* =========================================================
+   BLOCK RESULT
+   ========================================================= */
+function finishBlock(timedOut) {
+  if (state.blockFinished) return;
+  state.blockFinished = true;
+  clearInterval(state.timerId);
+
+  const block = currentBlock();
+  const max = block.elements.length * 10;
+  state.scores.push({ key: block.key, title: block.title, score: state.blockScore, max });
+  Audio_.blockDone();
+  confettiBurst(36);
+
+  document.getElementById("resultBlockTitle").textContent = `${block.title} Selesai`;
+  document.getElementById("resultScoreBig").innerHTML = `${state.blockScore}<span>/${max}</span>`;
+  const pct = state.blockScore / max;
+  document.getElementById("resultNote").textContent = timedOut
+    ? "Waktu 20 menit habis sebelum semua kasus terpecahkan — sisanya tercatat sebagai belum terjawab."
+    : (pct >= 0.85 ? "Deduksi tajam, Detektif! Nyaris sempurna." :
+       pct >= 0.6  ? "Kerja bagus. Beberapa jejak sempat meleset, tapi kasus terpecahkan." :
+                     "Kasus ditutup — tapi ada beberapa jejak yang perlu dicermati lagi lain waktu.");
+  document.getElementById("btnNextBlock").textContent =
+    state.blockIndex < BLOCKS.length - 1 ? "Lanjut ke Kasus Berikutnya →" : "Lihat Laporan Akhir →";
+
+  renderBoard(document.getElementById("ptBoardResult"), { interactive: false, compact: true });
+  showScreen("screen-blockresult");
+}
+
+document.getElementById("btnNextBlock").addEventListener("click", () => {
+  if (state.blockIndex < BLOCKS.length - 1) {
+    state.blockIndex++;
+    renderIntro();
+  } else {
+    renderFinal();
+  }
+});
+
+/* =========================================================
+   FINAL SUMMARY + SUBMIT
+   ========================================================= */
+function renderFinal() {
+  const total = state.scores.reduce((s, b) => s + b.score, 0);
+  const max = state.scores.reduce((s, b) => s + b.max, 0);
+  document.getElementById("finalScoreBig").innerHTML = `${total}<span>/${max}</span>`;
+  document.getElementById("finalBreakdown").innerHTML = state.scores.map(b =>
+    `<div class="final-row"><span>${b.title}</span><strong>${b.score} / ${b.max}</strong></div>`
+  ).join("");
+  renderBoard(document.getElementById("ptBoardFinal"), { interactive: false, compact: true });
+  Audio_.finalDone();
+  confettiBurst(50);
+  showScreen("screen-final");
+  submitResults(total, max);
+}
+
+function submitResults(total, max) {
+  const statusEl = document.getElementById("submitStatus");
+  if (!CONFIG.SCRIPT_URL || CONFIG.SCRIPT_URL.indexOf("PASTE_URL") !== -1) {
+    statusEl.textContent = "⚠ Endpoint belum diatur — nilai tidak terkirim ke guru (lihat SETUP.md).";
+    return;
+  }
+  statusEl.textContent = "Mengirim laporan ke markas (guru)…";
+  const payload = {
+    nama: state.nama,
+    kelas: state.kelas,
+    waktu: new Date().toISOString(),
+    total: total,
+    maksimal: max,
+    perBlok: state.scores
+  };
+  fetch(CONFIG.SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  })
+    .then(r => r.json().catch(() => ({ ok: true })))
+    .then(() => { statusEl.textContent = "✓ Laporan berhasil dikirim ke guru."; })
+    .catch(() => {
+      statusEl.textContent = "⚠ Gagal mengirim laporan (koneksi bermasalah). Skor tetap tersimpan di layar ini.";
+    });
+}
+
+document.getElementById("btnRestart").addEventListener("click", () => location.reload());
+
+/* =========================================================
+   START SCREEN
+   ========================================================= */
+document.getElementById("btnStart").addEventListener("click", () => {
+  const nama = document.getElementById("inputNama").value.trim();
+  const kelas = document.getElementById("inputKelas").value.trim();
+  const err = document.getElementById("startError");
+  if (!nama || !kelas) {
+    err.textContent = "Isi nama dan kelas dulu, Detektif.";
+    return;
+  }
+  err.textContent = "";
+  state.nama = nama;
+  state.kelas = kelas;
+  Audio_.unlock();
+  renderIntro();
+});
+
+/* =========================================================
+   MUTE BUTTON
+   ========================================================= */
+document.getElementById("muteBtn").addEventListener("click", () => {
+  const muted = Audio_.toggleMute();
+  document.getElementById("iconSoundOn").style.display = muted ? "none" : "";
+  document.getElementById("iconSoundOff").style.display = muted ? "" : "none";
+});
+
+</script>
+</body>
+</html>
